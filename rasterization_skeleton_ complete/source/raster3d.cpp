@@ -38,12 +38,19 @@ float max3(const float& a, const float& b, const float& c)
     return std::max(a, std::max(b, c));
 }
 
-
-float edge(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
+float area(const glm::vec3 a, const glm::vec3 b, const glm::vec3 c)
 {
-    return (c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]);
-    //   return ((b.x-a.x) * (c.y-a.y) - (b.y-a.y)*(c.x-a.x));
+    return fabs(a.x * (b.y-c.y) + b.x * (c.y-a.y) + c.x * (a.y-b.y));
 }
+
+
+bool edge(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) 
+{
+    // a->b로 가는 벡터에 대해 c가 오른쪽인지 왼쪽인지 확인 {    return ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x) >= 0); } 
+    return ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x) >= 0);
+}
+
+
 
 glm::mat4 lookAt(glm::vec3 pos, glm::vec3 look, glm::vec3 up)
 {
@@ -65,7 +72,7 @@ const uint32_t imageWidth = 640;
 const uint32_t imageHeight = 480;
 
 
-const uint32_t ntris = 3156;
+const uint32_t ntris = 9468/3.0;
 const float nearClippingPlane = 1;
 const float farClippingPLane = 1000;
 
@@ -74,7 +81,7 @@ const float farClippingPLane = 1000;
 int main(int argc, char** argv)
 {
   
-    glm::mat4 worldToCamera = glm::lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
+   // glm::mat4 worldToCamera = glm::lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
 
     float t, b, l, r;
 
@@ -115,7 +122,8 @@ int main(int argc, char** argv)
 
         glm::mat4 modelMatrix(1.0f);
 
-        glm::mat4 viewMatrix = lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
+       // glm::mat4 viewMatrix = lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
+        glm::mat4 viewMatrix = lookAt(glm::vec3(0, 20, 0.001), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
         glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
 
@@ -186,32 +194,47 @@ int main(int argc, char** argv)
 
 
         //calculat the area of triangle  (area)
-        float area = edge(v0Raster, v1Raster, v2Raster);
+       // float area = edge(v0Raster, v1Raster, v2Raster);
+		float total = area(v0Raster, v1Raster, v2Raster);
+
+        //calculat the area of triangle  (area)
+       // float area = edge2(v0Raster, v1Raster, v2Raster);
+
+        v0Raster.z = 1.0f / v0Raster.z,
+        v1Raster.z = 1.0f / v1Raster.z,
+        v2Raster.z = 1.0f / v2Raster.z;
+
 
         for (uint32_t y = y0; y <= y1; ++y) {
             for (uint32_t x = x0; x <= x1; ++x) {
                                 
                 glm::vec3 pixelSample(x + 0.5, y + 0.5, 0);
 
-                /*
+                
                 //calculate the areas of  three suvdivided triangles
 
-                float w0 = edge(v1Raster, v2Raster, pixelSample); //w0
-                float w1 = edge(v2Raster, v0Raster, pixelSample); //w1
-                float w2 = edge(v0Raster, v1Raster, pixelSample); //w2
+                bool w0 = edge(v0Raster, v1Raster, pixelSample); //w0
+                bool w1 = edge(v1Raster, v2Raster, pixelSample); //w1
+                bool w2 = edge(v2Raster, v0Raster, pixelSample); //w2
+             
 
+                if (w0 == true && w1 == true && w2 == true) {  //inside
 
-                if (w0 >= 0 && w1 >= 0 && w2 >= 0) { //inside
+                                                    
+                   float a2 = area(v0Raster, v1Raster, pixelSample); //w2
+                   float a0 = area(v1Raster, v2Raster, pixelSample); //w0
+                   float a1 = area(v2Raster, v0Raster, pixelSample); //w1
 
-                    
                     //calculate the ratio here
-                    w0 /= area;
-                    w1 /= area;
-                    w2 /= area;
+                    a0 /= total;
+                    a1 /= total;
+                    a2 /= total;
+
+             
 
                     //calculate the z of pixelSample
                     float z;
-                    float oneOverZ = v0Raster.z * w0 + v1Raster.z * w1 + v2Raster.z * w2;
+                    float oneOverZ = v0Raster.z * a0 + v1Raster.z * a1 + v2Raster.z * a2;
                     z = 1 / oneOverZ;
                     
                     //code here
@@ -237,12 +260,12 @@ int main(int argc, char** argv)
                         frameBuffer[y * imageWidth + x].b = n.z * 255;
                     }
                 }
-                */
+                
 
 
-                frameBuffer[y * imageWidth + x].r = 255;
-                frameBuffer[y * imageWidth + x].g = 0;
-                frameBuffer[y * imageWidth + x].b = 0;
+               // frameBuffer[y * imageWidth + x].r = 255;
+               // frameBuffer[y * imageWidth + x].g = 0;
+               // frameBuffer[y * imageWidth + x].b = 0;
             
 
             }// inner loop

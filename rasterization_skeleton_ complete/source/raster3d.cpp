@@ -122,8 +122,8 @@ int main(int argc, char** argv)
 
         glm::mat4 modelMatrix(1.0f);
 
-       // glm::mat4 viewMatrix = lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
-        glm::mat4 viewMatrix = lookAt(glm::vec3(0, 20, 0.001), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
+        glm::mat4 viewMatrix = lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
+       // glm::mat4 viewMatrix = lookAt(glm::vec3(0, 20, 0.001), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 
         glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
 
@@ -235,6 +235,9 @@ int main(int argc, char** argv)
                     //calculate the z of pixelSample
                     float z;
                     float oneOverZ = v0Raster.z * a0 + v1Raster.z * a1 + v2Raster.z * a2;
+
+					glm::vec3 color = glm::vec3(1, 0, 0) * a0 + glm::vec3(0, 1, 0) * a1 + glm::vec3(0, 0, 1) * a2;
+
                     z = 1 / oneOverZ;
                     
                     //code here
@@ -254,10 +257,10 @@ int main(int argc, char** argv)
                         n = (n + glm::vec3(1, 1, 1)) / 2.0f;
 
 
-
                         frameBuffer[y * imageWidth + x].r = n.x * 255;
                         frameBuffer[y * imageWidth + x].g = n.y * 255;
                         frameBuffer[y * imageWidth + x].b = n.z * 255;
+
                     }
                 }
                 

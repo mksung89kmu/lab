@@ -9,7 +9,7 @@
 
 #include "MyGlWindow.h"
 
-MyGlWindow * win;
+std::unique_ptr<MyGlWindow> win;
 
 bool lbutton_down;
 bool rbutton_down;
@@ -24,8 +24,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
-
-
 
 
 int main(void)
@@ -82,7 +80,7 @@ int main(void)
 	
 
 
-	win = new MyGlWindow(width, height);
+	win = std::make_unique<MyGlWindow>(width, height);
 
 	bool show_test_window = true;
 	bool show_another_window = false;
@@ -104,12 +102,11 @@ int main(void)
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-
-	
+			
 		// Rendering
-		int display_w, display_h;
-		glfwGetFramebufferSize(window, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
+//		int display_w, display_h;
+//		glfwGetFramebufferSize(window, &display_w, &display_h);
+//		glViewport(0, 0, display_w, display_h);
 		glClearColor(0,0,0,0);
 		glClear(GL_COLOR_BUFFER_BIT);
 

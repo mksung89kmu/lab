@@ -88,7 +88,7 @@ void MyGlWindow::setupBuffer()
 
 	//without DSA
 	
-	
+	/*
 	//create vao
 	glGenVertexArrays(1, &vaoHandle);
 	glBindVertexArray(vaoHandle);
@@ -124,7 +124,7 @@ void MyGlWindow::setupBuffer()
 
 	//unbound the vao
 	glBindVertexArray(0);
-	
+	*/
 	
 
 	//with DSA
@@ -221,26 +221,47 @@ void MyGlWindow::setupBuffer()
 	*/
 	
 	//interleave : dsa
+	
+	//하나의 버퍼만을 이용함 : 0  binding index
 
-	/*
 	GLuint VBO;
 	glCreateVertexArrays(1, &vaoHandle);
 	glCreateBuffers(1, &VBO);
 
+	//정점 데이타 복사 : CPU -> GPU
 	glNamedBufferData(VBO, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glVertexArrayVertexBuffer(vaoHandle, 0, VBO, 0, sizeof(float) * 7); // 7는 위치와 색상 포함
+
+	//0번 index에 sizeof(GLfloat)*7 간격으로 데이터를 가져오도록 설정
+
+	glVertexArrayVertexBuffer(
+		vaoHandle,    //vao 
+		0, //binding index
+		VBO, //buffer
+		0, //offset : 바로 시작하기 때문에 0
+		sizeof(float) * 7  //stride : // 7는 위치와 색상 포함
+	); 
 
 	// 위치 속성 설정
-	glVertexArrayAttribFormat(vaoHandle, 0, 4, GL_FLOAT, GL_FALSE, 0);
-	glVertexArrayAttribBinding(vaoHandle, 0, 0);
-	glEnableVertexArrayAttrib(vaoHandle, 0);
+	glVertexArrayAttribFormat(
+		vaoHandle, //vao
+		0,   //attribute index
+		4, //data per vertex
+		GL_FLOAT, 
+		GL_FALSE, 
+		0); //offset : binding index에서부터 상대적인 offset
+	glVertexArrayAttribBinding(vaoHandle, 0, 0);  //attribute index, binding index을 연결
+	glEnableVertexArrayAttrib(vaoHandle, 0); //enable attribute 0
 
 	// 색상 속성 설정
-	glVertexArrayAttribFormat(vaoHandle, 1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 4);
-	glVertexArrayAttribBinding(vaoHandle, 1, 0);
-	glEnableVertexArrayAttrib(vaoHandle, 1);
-
-	*/
+	glVertexArrayAttribFormat(
+		vaoHandle, 
+		1, //attribute index
+		3,  //data per vertex
+		GL_FLOAT, 
+		GL_FALSE, 
+		sizeof(float) * 4);  //offset : binding index에서부터 상대적인 offset
+	glVertexArrayAttribBinding(vaoHandle, 1, 0);  //attribute index, binding index을 연결
+	glEnableVertexArrayAttrib(vaoHandle, 1); //enable attribute 1
 
 }
 
@@ -261,7 +282,7 @@ void MyGlWindow::draw(void)
 //	glUniformMatrix4fv(shaderProgram->uniform("Model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(vaoHandle);
 //		glDrawArrays(GL_TRIANGLES, 0, 4);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 	shaderProgram->disable();
 
 

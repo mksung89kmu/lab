@@ -159,7 +159,6 @@ int main(void)
 
 	double previousTime = glfwGetTime();
 	int frameCount = 0;
-	double lastTime;
 
 
 

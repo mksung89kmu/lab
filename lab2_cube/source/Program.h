@@ -61,9 +61,7 @@ class Logging
 	{
 	public:
 
-		static std::unique_ptr<Program> TryGenerateFromFileVsFs(const std::string& filepathVs, const std::string& filepathFs);
-		static std::unique_ptr<Program> TryGenerateFromFileCs(const std::string& filepathCs);
-
+		
 
 		//fix is to use smart pointers later
 		static std::unique_ptr<Program> GenerateFromFileVsFs(const std::string& filepathVs, const std::string& filepathFs);

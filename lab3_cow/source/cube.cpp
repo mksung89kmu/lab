@@ -138,7 +138,7 @@ void cow::draw()
 //	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;
 	glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-	float tt = size / sizeof(uint32_t);
+	size_t tt = size / sizeof(uint32_t);
 	glDrawElements(GL_TRIANGLES, size / sizeof(uint32_t), GL_UNSIGNED_INT, 0);
 
 

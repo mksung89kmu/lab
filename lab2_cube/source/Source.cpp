@@ -7,7 +7,7 @@
 
 #include "MyGlWindow.h"
 
-MyGlWindow * win;
+std::unique_ptr<MyGlWindow>  win = nullptr;
 
 bool lbutton_down;
 bool rbutton_down;
@@ -146,12 +146,10 @@ int main(void)
 	printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 
-	glfwSwapInterval(1);  //enable vsync
+	glfwSwapInterval(0);  //enable vsync
 
+	win = std::make_unique<MyGlWindow>(width, height);
 	
-
-
-	win = new MyGlWindow(width, height);
 
 	bool show_test_window = true;
 	bool show_another_window = false;
@@ -177,8 +175,6 @@ int main(void)
 	while (!glfwWindowShouldClose(window))
 	{
 
-		
-
 		// Rendering
 	
 		
@@ -193,11 +189,7 @@ int main(void)
 		glViewport(0, 0, display_w, display_h);
 
 
-
 		win->draw();
-
-
-
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);

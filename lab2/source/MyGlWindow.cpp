@@ -64,6 +64,7 @@ void MyGlWindow::setupBuffer()
 	};
 	*/
 
+	// rectangle : triangle strip
 	const float vertexPositions[] = {
 		-0.2f, -0.1f, 0.0f, 1.0f,
 		0.2f, -0.1f, 0.0f, 1.0f,			
@@ -77,6 +78,58 @@ void MyGlWindow::setupBuffer()
 		0, 0, 1,
 		0, 1, 0
 	};
+
+	//triangle : interleaved
+	GLfloat vertices[] = {
+		// 위치          // 색상
+		-0.2f, 0, 0.0f, 1.0f,     1.0f, 0.0f, 0.0f, // Red
+		0,  0.4f, 0.0f, 1.0f,     0.0f, 1.0f, 0.0f, // Green
+		0.2f, 0, 0.0f, 1.0f,      0.0f, 0.0f, 1.0f  // Blue
+	};
+
+
+	//cube data
+	GLfloat cube_vertices[] = {
+		// front
+		-1.0, -1.0, 1.0,
+		1.0, -1.0, 1.0,
+		1.0, 1.0, 1.0,
+		-1.0, 1.0, 1.0,
+		// back
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0, 1.0, -1.0,
+		-1.0, 1.0, -1.0,
+	};
+	GLfloat cube_colors[] = {
+		// front colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
+		// back colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
+	};
+
+
+	GLushort cube_elements[] = {
+	0, 1, 2,
+	2, 3, 0,
+	1, 5, 6,
+	6, 2, 1,
+	7, 6, 5,
+	5, 4, 7,
+	4, 0, 3,
+	3, 7, 4,
+	4, 5, 1,
+	1, 0, 4,
+	3, 2, 6,
+	6, 7, 3,
+	};
+
 
 
 	shaderProgram = std::make_unique<ShaderProgram>();
@@ -127,9 +180,8 @@ void MyGlWindow::setupBuffer()
 	*/
 	
 
-	//with DSA
+	//with DSA  : Triangle separate VBOs
 	/*
-	
 	glCreateVertexArrays(1, &vaoHandle);
 	glCreateBuffers(1, &vbo_cube_vertices); // VBO 두 개 생성
 	glCreateBuffers(1, &vbo_cube_colors); // VBO 두 개 생성
@@ -163,7 +215,48 @@ void MyGlWindow::setupBuffer()
 		0);
 	glVertexArrayAttribBinding(vaoHandle, 1, 1); //attribute index, binding index을 연결 
 	glEnableVertexArrayAttrib(vaoHandle, 1);
+	*/
 
+	/*
+
+	//with DSA for cube	
+	glCreateVertexArrays(1, &vaoHandle);
+	glCreateBuffers(1, &vbo_cube_vertices); // VBO 두 개 생성
+	glCreateBuffers(1, &vbo_cube_colors); // VBO 두 개 생성
+	//index buffer
+	glCreateBuffers(1, &ibo_cube); 
+
+	glNamedBufferData(vbo_cube_vertices, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+	glVertexArrayVertexBuffer(vaoHandle, 0, vbo_cube_vertices, 0, sizeof(GLfloat) * 3);
+
+	glNamedBufferData(vbo_cube_colors, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+	glVertexArrayVertexBuffer(vaoHandle, 1, vbo_cube_colors, 0, sizeof(GLfloat) * 3);
+
+	//index buffer data
+	glNamedBufferData(ibo_cube, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
+
+
+	glVertexArrayAttribFormat(vaoHandle,
+		0, // attribute index
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		0);  //상대적인 offset
+	glVertexArrayAttribBinding(vaoHandle, 0, 0);  //attribute index, binding index을 연결  (attribute 0은 binding 0번 VBO에서 데이터를 가져온다)
+	glEnableVertexArrayAttrib(vaoHandle, 0);
+
+	// 색상 속성 설정
+	glVertexArrayAttribFormat(vaoHandle,
+		1,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		0);
+	glVertexArrayAttribBinding(vaoHandle, 1, 1); //attribute index, binding index을 연결 
+	glEnableVertexArrayAttrib(vaoHandle, 1);
+
+	//bind index buffer to vao
+	glVertexArrayElementBuffer(vaoHandle, ibo_cube);
 	*/
 
 
@@ -176,13 +269,7 @@ void MyGlWindow::setupBuffer()
 	*/
 
 	//interleaved way : DSA Higher than 4.5
-	GLfloat vertices[] = {
-		// 위치          // 색상
-		-0.2f, 0, 0.0f, 1.0f,     1.0f, 0.0f, 0.0f, // Red
-		0,  0.4f, 0.0f, 1.0f,     0.0f, 1.0f, 0.0f, // Green
-		0.2f, 0, 0.0f, 1.0f,      0.0f, 0.0f, 1.0f  // Blue
-	};
-
+	
 	/*
 	//no dsa : interleave
 	//create vao
@@ -217,9 +304,11 @@ void MyGlWindow::setupBuffer()
 
 	//unbound the vao
 	glBindVertexArray(0);
-	
+
 	*/
-	
+
+
+/*
 	//interleave : dsa
 	
 	//하나의 버퍼만을 이용함 : 0  binding index
@@ -230,7 +319,6 @@ void MyGlWindow::setupBuffer()
 
 	//정점 데이타 복사 : CPU -> GPU
 	glNamedBufferData(VBO, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
 	//0번 index에 sizeof(GLfloat)*7 간격으로 데이터를 가져오도록 설정
 
 	glVertexArrayVertexBuffer(
@@ -262,7 +350,7 @@ void MyGlWindow::setupBuffer()
 		sizeof(float) * 4);  //offset : binding index에서부터 상대적인 offset
 	glVertexArrayAttribBinding(vaoHandle, 1, 0);  //attribute index, binding index을 연결
 	glEnableVertexArrayAttrib(vaoHandle, 1); //enable attribute 1
-
+	*/
 }
 
 void MyGlWindow::draw(void)
@@ -283,6 +371,7 @@ void MyGlWindow::draw(void)
 		glBindVertexArray(vaoHandle);
 //		glDrawArrays(GL_TRIANGLES, 0, 4);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+//		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
 	shaderProgram->disable();
 
 

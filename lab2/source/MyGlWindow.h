@@ -14,6 +14,7 @@ private:
 
 	GLuint vaoHandle;
 	GLuint vbo_cube_vertices, vbo_cube_colors;
+	GLuint ibo_cube;
 	GLuint vbo_vertex;
 	
 	std::unique_ptr<ShaderProgram> shaderProgram;

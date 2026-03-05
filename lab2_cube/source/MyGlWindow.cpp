@@ -105,7 +105,7 @@ void MyGlWindow::draw(void)
 	glm::mat4 view = lookAt(eye, look, up);
 	
 
-	glm::mat4 projection = glm::perspective(45.0f, 1.0f*m_width / m_height, 0.1f, 500.0f);
+	glm::mat4 projection = perspective(45.0f, 1.0f*m_width / m_height, 0.1f, 500.0f);
 
 	glm::mat4 mview = view * model;
 	glm::mat4 mvp = projection * view *  model;

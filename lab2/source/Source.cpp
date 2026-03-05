@@ -48,7 +48,7 @@ int main(void)
 	int height = 800;
 
 	/* Create a windowed mode window and its OpenGL context */
-	window = glfwCreateWindow(width, height, u8"³ªÀÇ ¿ÀÇÂÁö¿¤", NULL, NULL);
+	window = glfwCreateWindow(width, height, "OpenGL", NULL, NULL);
 
 
 	if (!window)
@@ -95,7 +95,7 @@ int main(void)
 	glfwSetKeyCallback(window, key_callback);
 
 
-	glfwSetWindowTitle(window, u8"³ªÀÇ ¿ÀÇÂÁö¿¤");
+	glfwSetWindowTitle(window, "OpenGL");
 
 	
 

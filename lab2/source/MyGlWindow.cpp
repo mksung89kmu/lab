@@ -66,27 +66,40 @@ void MyGlWindow::setupBuffer()
 
 	// rectangle : triangle strip
 	const float vertexPositions[] = {
-		-0.2f, -0.1f, 0.0f, 1.0f,
-		0.2f, -0.1f, 0.0f, 1.0f,			
-		-0.2f, 0.1, 0.0f, 1.0f,
-		0.2f, 0.1, 0.0f, 1.0f
+		-0.1f, -0.1f, 0.0f, 1.0f,  //x,y,z,w
+		 0.1f, -0.1f, 0.0f, 1.0f,
+		-0.1f, 0.1f, 0.0f, 1.0f,
+
+		0.1f, -0.1f, 0.0f, 1.0f,
+		0.1f,  0.1f, 0.0f, 1.0f,
+		-0.1f, 0.1f, 0.0f, 1.0f
+	
 	};
 
 	const float vertexColors[] = {
 		1, 0, 0,
 		0, 1, 0,
 		0, 0, 1,
-		0, 1, 0
+		0, 1, 0,
+		1, 0, 0,
+		0, 0, 1
+	
 	};
 
 	//triangle : interleaved
 	GLfloat vertices[] = {
 		// 위치          // 색상
-		-0.2f, 0, 0.0f, 1.0f,     1.0f, 0.0f, 0.0f, // Red
-		0,  0.4f, 0.0f, 1.0f,     0.0f, 1.0f, 0.0f, // Green
-		0.2f, 0, 0.0f, 1.0f,      0.0f, 0.0f, 1.0f  // Blue
+		-0.1f, -0.1f, 0.0f,     1.0f, 0.0f, 0.0f, // Red
+		 0.1f, -0.1f, 0.0f,     0.0f, 1.0f, 0.0f, // Green
+		-0.1f, 0.1f, 0.0f,      0.0f, 0.0f, 1.0f,  // Blue
+
+		0.1f, -0.1f, 0.0f,     0.0f, 1.0f, 0.0f, // Red
+		0.1f,  0.1f, 0.0f,     1.0f, 0.0f, 0.0f, // Green
+		-0.1f, 0.1f, 0.0f,     0.0f, 0.0f, 1.0f  // Blue
 	};
 
+
+	/*
 
 	//cube data
 	GLfloat cube_vertices[] = {
@@ -129,16 +142,27 @@ void MyGlWindow::setupBuffer()
 	3, 2, 6,
 	6, 7, 3,
 	};
+	*/
 
 
-
-	shaderProgram = std::make_unique<ShaderProgram>();
+//	shaderProgram = std::make_unique<ShaderProgram>();
 	
-	//load shaders
-	shaderProgram->initFromFiles("shaders/simple.vert", "shaders/simple.frag");
-
+	//load shaders//
+	//shaderProgram->initFromFiles("shaders/simple.vert", "shaders/simple.frag");
 	
-
+	
+	try {
+		shaderProgram_new = std::unique_ptr<Program>(Program::GenerateFromFileVsFs("shaders/simple.vert", "shaders/simple.frag"));
+	}
+	catch (const std::runtime_error& e) {
+		std::cerr << "SHADER ERROR: " << e.what() << std::endl;
+		std::cerr << "Failed to load shaders. Please check your shader files." << std::endl;
+		exit(1);
+	}
+	catch (const std::exception& e) {
+		std::cerr << "UNEXPECTED ERROR: " << e.what() << std::endl;
+		exit(1);
+	}
 	//without DSA
 	
 	/*
@@ -151,14 +175,14 @@ void MyGlWindow::setupBuffer()
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), &vertexPositions, GL_STATIC_DRAW);
 	glVertexAttribPointer(
-		0, 
-		4,                 
+		0, //attribute index
+		4,  //number of elements per vertex, here (x,y,z,w)         
 		GL_FLOAT,          
 		GL_FALSE,          
 		0,             //  stride : distance from the previous to next data
 		0              //  offset  
 		);
-    glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(0);  //enable attribute index 0 (position)
 
 
 	//create vbo for colors
@@ -173,7 +197,7 @@ void MyGlWindow::setupBuffer()
 		0,                 // no extra data between each position
 		0                  // offset of first element
 		);
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(1);  //enable attribute index 1(color)
 
 	//unbound the vao
 	glBindVertexArray(0);
@@ -190,7 +214,7 @@ void MyGlWindow::setupBuffer()
 	glNamedBufferData(vbo_cube_vertices, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
 
 	//0번 index에 sizeof(GLfloat)*4 간격으로 데이터를 가져오도록 설정
-	glVertexArrayVertexBuffer(vaoHandle, 0, vbo_cube_vertices, 0, sizeof(GLfloat) * 4);  //0 : binding index, 0 : offset, sizeof(GLfloat)*4 : stride (VBO에도 번호를 매긴다)
+	glVertexArrayVertexBuffer(vaoHandle, 0, vbo_cube_vertices, 0, sizeof(GLfloat) * 4);  //0 : binding index, 0 : offset(데이타나 시작점에서 얼마나 떨어져 있나), sizeof(GLfloat)*4 : stride (VBO에도 번호를 매긴다)
 
 	// 색상 데이터 VBO 설정
 	glNamedBufferData(vbo_cube_colors, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);
@@ -199,20 +223,21 @@ void MyGlWindow::setupBuffer()
 	// 위치 속성 설정
 	glVertexArrayAttribFormat(vaoHandle, 
 		0, // attribute index
-		4, 
-		GL_FLOAT, 
-		GL_FALSE, 
-		0);  //상대적인 offset
+		4, //data per vertex
+		GL_FLOAT, //type	
+		GL_FALSE, //normalized
+		0);  //상대적인 offset : binding index에서부터 상대적인 offset, 0은 바로 시작한다는 의미
+
 	glVertexArrayAttribBinding(vaoHandle, 0, 0);  //attribute index, binding index을 연결  (attribute 0은 binding 0번 VBO에서 데이터를 가져온다)
 	glEnableVertexArrayAttrib(vaoHandle, 0);
 
 	// 색상 속성 설정
 	glVertexArrayAttribFormat(vaoHandle, 
-		1, 
-		3, 
-		GL_FLOAT, 
-		GL_FALSE, 
-		0);
+		1, //attribute index
+		3, //data per vertex
+		GL_FLOAT, //type
+		GL_FALSE, //normalized
+		0); //상대적인 offset : binding index에서부터 상대적인 offset, 0은 바로 시작한다는 의미
 	glVertexArrayAttribBinding(vaoHandle, 1, 1); //attribute index, binding index을 연결 
 	glEnableVertexArrayAttrib(vaoHandle, 1);
 	*/
@@ -283,12 +308,12 @@ void MyGlWindow::setupBuffer()
 
 
 	glVertexAttribPointer(
-		0,
-		4,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(float) * 7,
-		(void*)0
+		0, //attribute index
+		3,//	number of elements per vertex, here (x,y,z,w)
+		GL_FLOAT,//	type
+		GL_FALSE, //normalized
+		sizeof(float) * 6, //	stride : distance from the previous to next data (7은 위치와 색상 포함)
+		(void*)0 //	offset : 위치 데이터는 버퍼의 시작점에서 바로 시작하기 때문에 0
 	);
 	glEnableVertexAttribArray(0);
 
@@ -297,8 +322,8 @@ void MyGlWindow::setupBuffer()
 		3,                 // number of elements per vertex, here (R,G,B)
 		GL_FLOAT,          // the type of each element
 		GL_FALSE,          // take our values as-is
-		sizeof(float) * 7,                 // no extra data between each position
-		(void*)(sizeof(float) * 4)                  // offset of first element
+		sizeof(float) * 6,                 // no extra data between each position
+		(void*)(sizeof(float) * 3)                  // offset of first element
 	);
 	glEnableVertexAttribArray(1);
 
@@ -306,9 +331,10 @@ void MyGlWindow::setupBuffer()
 	glBindVertexArray(0);
 
 	*/
+	
 
 
-/*
+
 	//interleave : dsa
 	
 	//하나의 버퍼만을 이용함 : 0  binding index
@@ -326,14 +352,14 @@ void MyGlWindow::setupBuffer()
 		0, //binding index
 		VBO, //buffer
 		0, //offset : 바로 시작하기 때문에 0
-		sizeof(float) * 7  //stride : // 7는 위치와 색상 포함
+		sizeof(float) * 6  //stride : // 7는 위치와 색상 포함
 	); 
 
 	// 위치 속성 설정
 	glVertexArrayAttribFormat(
 		vaoHandle, //vao
 		0,   //attribute index
-		4, //data per vertex
+		3, //data per vertex
 		GL_FLOAT, 
 		GL_FALSE, 
 		0); //offset : binding index에서부터 상대적인 offset
@@ -347,10 +373,10 @@ void MyGlWindow::setupBuffer()
 		3,  //data per vertex
 		GL_FLOAT, 
 		GL_FALSE, 
-		sizeof(float) * 4);  //offset : binding index에서부터 상대적인 offset
+		sizeof(float) * 3);  //offset : binding index에서부터 상대적인 offset
 	glVertexArrayAttribBinding(vaoHandle, 1, 0);  //attribute index, binding index을 연결
 	glEnableVertexArrayAttrib(vaoHandle, 1); //enable attribute 1
-	*/
+	
 }
 
 void MyGlWindow::draw(void)
@@ -365,14 +391,24 @@ void MyGlWindow::draw(void)
 
 	glViewport(0, 0, m_width, m_height);
 
-	
+	/*
 	shaderProgram->use();
 //	glUniformMatrix4fv(shaderProgram->uniform("Model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(vaoHandle);
 //		glDrawArrays(GL_TRIANGLES, 0, 4);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 //		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
 	shaderProgram->disable();
+	*/
+
+		
+	shaderProgram_new->BindProgram();
+	glBindVertexArray(vaoHandle);
+	//if (m_cube) m_cube->draw();
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	shaderProgram_new->UnbindProgram();
+	
+
 
 
 }

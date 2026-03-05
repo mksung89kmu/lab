@@ -4,7 +4,7 @@
 #include <GL/gl3w.h>
 #include <string>
 #include "Loader.h"
-
+#include "Program.h"
 
 class MyGlWindow {
 public:
@@ -18,6 +18,7 @@ private:
 	GLuint vbo_vertex;
 	
 	std::unique_ptr<ShaderProgram> shaderProgram;
+	std::unique_ptr<Program> shaderProgram_new;
 
 	int m_width;
 	int m_height;

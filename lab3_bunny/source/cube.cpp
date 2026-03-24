@@ -1,48 +1,62 @@
 
 
-#include <iostream>
+
 #include "cube.h"
-#include "cow.h"
+#include "bunny.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-cow::cow()
+bunny::bunny()
 {
 
 	setup();
 }
 
-void cow::calculateNormal()
+
+void bunny::setup()
 {
-	const uint32_t ntris = 3156;
+		
+	//struct ModelVertex const modelVertices[3161]
+	std::vector<glm::vec3> vertices(3161);
+	std::vector<glm::vec3> normals(3161);
+	std::vector<glm::vec2> texcoords(3161);
 
-	normals.resize(1732);
+	std::vector<uint32_t> nvertices;
+	for (int i = 0; i < 3161; i++) {
+		vertices[i] = modelVertices[i].position;
+		normals[i] = modelVertices[i].normal;
 
-	for (uint32_t i = 0; i < ntris; ++i) {
-
-		const glm::vec3& v0 = vertices[nvertices[i * 3]];
-		const glm::vec3& v1 = vertices[nvertices[i * 3 + 1]];
-		const glm::vec3& v2 = vertices[nvertices[i * 3 + 2]];
-
-
-		glm::vec3 vv1 = v1 - v0;
-		glm::vec3 vv2 = v2 - v0;
-
-		glm::vec3 n = glm::cross(vv1, vv2);
-		n = glm::normalize(n);
-
-		normals[nvertices[i * 3]] = n;
-		normals[nvertices[i * 3+1]] = n;
-		normals[nvertices[i * 3+2]] = n;
 	}
 
-}
+	
+	std::vector<std::vector<int>> triangles;
+	for (int i = 0; i < 17088; i+=3) { //is it correct?
+	
+		std::vector<int> tri;
+		tri.push_back(modelIndices[i]);
+		tri.push_back(modelIndices[i+1]);
+		tri.push_back(modelIndices[i+2]);
+
+		triangles.push_back(tri);
+	}
+
+	HalfEdgeMesh mesh(triangles);
+
+	/*
+	for (auto he : mesh.halfEdges) {
+		std::cout << "HalfEdge from v" << he->vertex->id;
+		if (he->twin)
+			std::cout << " twin->v" << he->twin->vertex->id;
+		else
+			std::cout << " twin->None";
+		std::cout << std::endl;
+	}
+	*/
+
+	//const unsigned int modelIndices[17088] 
 
 
-void cow::setup()
-{
-			
 	/*
 	//create vao
 	glGenVertexArrays(1, &vaoHandle);
@@ -91,35 +105,7 @@ void cow::setup()
 	*/
 
 
-	calculateNormal();
-		
-	const uint32_t ntris = 3156;
-	std::vector<std::vector<int>> triangles;
-	for (uint32_t i = 0; i < ntris; ++i) {
-		std::vector<int> tri;
-
-		tri.push_back(nvertices[i]);
-		tri.push_back(nvertices[i + 1]);
-		tri.push_back(nvertices[i + 2]);
-
-		triangles.push_back(tri);
-
-	}
 	
-	HalfEdgeMesh mesh(triangles);
-
-	for (auto he : mesh.halfEdges) {
-		std::cout << "HalfEdge from v" << he->vertex->id;
-		if (he->twin)
-			std::cout << " twin->v" << he->twin->vertex->id;
-		else
-			std::cout << " twin->None";
-		std::cout << std::endl;
-	}
-
-	//implment the loop subdivision here
-
-
 
 	glCreateVertexArrays(1, &vaoHandle);
 	glCreateBuffers(1, &vbo_cow_vertices); // VBO 두 개 생성
@@ -128,16 +114,16 @@ void cow::setup()
 
 
 	// 정점 데이터 VBO 설정
-	glNamedBufferData(vbo_cow_vertices, sizeof(glm::vec3)*1732, vertices, GL_STATIC_DRAW);
+	glNamedBufferData(vbo_cow_vertices, sizeof(glm::vec3)* 3161, vertices.data(), GL_STATIC_DRAW);
 	glVertexArrayVertexBuffer(vaoHandle, 0, vbo_cow_vertices, 0, sizeof(glm::vec3));
 
 
-	glNamedBufferData(vbo_cow_normals, sizeof(glm::vec3) * 1732, normals.data(), GL_STATIC_DRAW);
+	glNamedBufferData(vbo_cow_normals, sizeof(glm::vec3) * 3161, normals.data(), GL_STATIC_DRAW);
     glVertexArrayVertexBuffer(vaoHandle, 1, vbo_cow_normals, 0, sizeof(glm::vec3));
 
 
 	// 인덱스 데이터 IBO 설정
-	glNamedBufferData(ibo_cow_elements, sizeof(nvertices), nvertices, GL_STATIC_DRAW);
+	glNamedBufferData(ibo_cow_elements, sizeof(modelIndices), modelIndices, GL_STATIC_DRAW);
 	glVertexArrayElementBuffer(vaoHandle, ibo_cow_elements);
 
 
@@ -155,19 +141,16 @@ void cow::setup()
 
 }
 
-void cow::draw()
+void bunny::draw()
 {
 
-	
 	glBindVertexArray(vaoHandle);
 //	glDrawArrays(GL_TRIANGLES, 0, 3);
 //	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;
 	glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-	size_t tt = size / sizeof(uint32_t);
-	glDrawElements(GL_TRIANGLES, size / sizeof(uint32_t), GL_UNSIGNED_INT, 0);
-
-
+	size_t tt = size / sizeof(unsigned int);
+	glDrawElements(GL_TRIANGLES, size / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
 
 }
 

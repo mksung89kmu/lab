@@ -7,83 +7,10 @@
 #include <vector>
 
 
-
-
-class HalfEdgeMesh {
-public:
-    std::vector<Vertex*> vertices;
-    std::vector<Face*> faces;
-    std::vector<HalfEdge*> halfEdges;
-
-    // --- Loop subdivision step ---
-    void loopSubdivision() {
-        // 1. Compute new edge vertices
-        std::unordered_map<std::pair<int, int>, Vertex*, pair_hash> edgeVertexMap;
-
-        for (auto he : halfEdges) {
-            if (he->idVisited) continue; // avoid duplicate
-            HalfEdge* twin = he->twin;
-            Vertex* v0 = he->vertex;
-            Vertex* v1 = he->next->vertex;
-
-            Vertex* v2 = he->next->next->vertex; // opposite in face
-            Vertex* v3 = twin ? twin->next->next->vertex : nullptr;
-
-            double nx = 0.375 * (v0->x + v1->x) + 0.125 * ((v2->x) + (v3 ? v3->x : 0));
-            double ny = 0.375 * (v0->y + v1->y) + 0.125 * ((v2->y) + (v3 ? v3->y : 0));
-            double nz = 0.375 * (v0->z + v1->z) + 0.125 * ((v2->z) + (v3 ? v3->z : 0));
-
-            Vertex* newV = new Vertex(vertices.size(), nx, ny, nz);
-            vertices.push_back(newV);
-
-            edgeVertexMap[{v0->id, v1->id}] = newV;
-            edgeVertexMap[{v1->id, v0->id}] = newV;
-
-            he->idVisited = true;
-            if (twin) twin->idVisited = true;
-        }
-
-        // 2. Update old vertices (valence-based weighting)
-        for (auto v : vertices) {
-            std::vector<Vertex*> neighbors;
-            HalfEdge* start = v->edge;
-            HalfEdge* he = start;
-            do {
-                neighbors.push_back(he->twin->vertex);
-                he = he->twin->next;
-            } while (he != start);
-
-            int n = neighbors.size();
-            double beta = (n == 3) ? 3.0 / 16.0 : 3.0 / (8.0 * n);
-
-            double nx = (1 - n * beta) * v->x;
-            double ny = (1 - n * beta) * v->y;
-            double nz = (1 - n * beta) * v->z;
-
-            for (auto nb : neighbors) {
-                nx += beta * nb->x;
-                ny += beta * nb->y;
-                nz += beta * nb->z;
-            }
-
-            v->x = nx;
-            v->y = ny;
-            v->z = nz;
-        }
-
-        // 3. Split faces into 4 smaller triangles using new edge vertices
-        // (Implementation detail: rebuild half-edge connectivity with new vertices)
-        // ...
-    }
-};
-
-// Hash for pair<int,int>
-struct pair_hash {
-    std::size_t operator()(const std::pair<int, int>& p) const {
-        return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
-    }
-};
-
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <tuple>
 
 struct HalfEdge;
 struct Face;
@@ -181,20 +108,18 @@ public:
     }
 };
 
-
-
-class cow
+class bunny
 {
 public:
-	cow();
+	bunny();
 	void setup();
 	void draw();
-	void calculateNormal();
+	
 
 	GLuint vaoHandle;
 	GLuint vbo_cow_vertices, ibo_cow_elements;
 	GLuint vbo_cow_normals;
-	std::vector<glm::vec3> normals;
+
 };
 
 #endif

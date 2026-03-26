@@ -1,4 +1,5 @@
-
+Ôªø
+#define GLM_ENABLE_EXPERIMENTAL 
 
 #include <iostream>
 #include "cube.h"
@@ -6,6 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include "HalfEdge.h"
+
 
 cow::cow()
 {
@@ -39,16 +43,107 @@ void cow::calculateNormal()
 
 }
 
+void cow::findingBoundaryEdge(HalfEdgeMesh& mesh)
+{
+
+	std::cout << "Boundary edges:" << std::endl;
+	for (auto he : mesh.halfEdges) {
+		if (he->twin == nullptr) {
+			int v_start = he->vertex->id;
+			int v_end = he->next->vertex->id;
+			//std::cout << "Edge from v" << v_start << " to v" << v_end << " is boundary." << std::endl;
+			normals[v_start] = glm::vec3(1.0f, 0.0f, 0.0f); // ÏòàÏãúÎ°ú Îπ®Í∞ÑÏÉâÏúºÎ°ú ÌëúÏãú
+			normals[v_end] = glm::vec3(1.0f, 0.0f, 0.0f);   // ÏòàÏãúÎ°ú Îπ®Í∞ÑÏÉâÏúºÎ°ú ÌëúÏãú
+		}
+	}
+}
+
+
+void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
+{
+	//Laplacian Smoothing
+
+	// ÏÉàÎ°úÏö¥ ÏúÑÏπòÎ•º Ï†ÄÏû•Ìï† Î≤ÑÌçº
+	std::vector<glm::vec3> newPositions(1732);
+
+	// Í∞Å vertexÏóê ÎåÄÌï¥ Ïù∏Ï†ë vertex ÌèâÍ∑† Í≥ÑÏÇ∞
+	for (auto v : mesh._vertices) {
+
+		if (v->edge == nullptr) {
+			newPositions[v->id] = vertices[v->id];
+			continue;
+		}
+
+		std::vector<Vertex*> neighbors;
+		HalfEdge* start = v->edge;
+		HalfEdge* he = start;
+
+		bool isBoundary = false;  // ‚úì Detect boundary vertices
+
+		do {
+			neighbors.push_back(he->next->vertex);
+
+			if (!he->twin) {
+				isBoundary = true;  // ‚úì Mark as boundary
+
+				// Collect remaining neighbors on boundary
+				HalfEdge* current = start;
+				while (current->next->next->twin) {
+					current = current->next->next->twin;
+					if (current == start) break;
+				}
+				if (current != start) {
+					neighbors.push_back(current->vertex);
+				}
+				break;
+			}
+
+			he = he->twin->next;
+		} while (he != start);
+
+		if (neighbors.empty()) {
+
+
+			newPositions[v->id] = vertices[v->id];
+			continue;
+		}
+
+		// ÌèâÍ∑† ÏúÑÏπò Í≥ÑÏÇ∞
+		glm::vec3 avgPos(0.0f);
+		for (auto nb : neighbors)
+		{
+
+			avgPos += vertices[nb->id];
+
+		}
+		avgPos /= static_cast<float>(neighbors.size());
+
+
+		float lambda = isBoundary ? 0.0f : 0.5f;
+		newPositions[v->id] = vertices[v->id] + lambda * (avgPos - vertices[v->id]);
+
+	}
+
+	// Î™®Îì† vertex ÏúÑÏπò ÏóÖÎç∞Ïù¥Ìä∏
+	for (auto v : mesh._vertices) {
+		//	std::cout << "Updating vertex " << v->id << " from " << glm::to_string(vertices[v->id]) 
+		//		<< " to " << glm::to_string(newPositions[v->id]) << std::endl;
+		vertices[v->id] = newPositions[v->id];
+
+	}
+}
+
+// Check which vertices have no edge
 
 void cow::setup()
 {
-			
+
 	/*
 	//create vao
 	glGenVertexArrays(1, &vaoHandle);
 	glBindVertexArray(vaoHandle);
 
-		
+
 
 	//create vbo for vertices
 	glGenBuffers(1, &vbo_cube_vertices);
@@ -84,7 +179,7 @@ void cow::setup()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
 
-	
+
 
 	glBindVertexArray(0);
 
@@ -92,42 +187,39 @@ void cow::setup()
 
 
 	calculateNormal();
-		
-	const uint32_t ntris = 3156;
+
+
+	const uint32_t ntris = 9468/3.0f; //number of triangles
+	
 	std::vector<std::vector<int>> triangles;
-	for (uint32_t i = 0; i < ntris; ++i) {
+	for (uint32_t i = 0; i < ntris; i++) {
 		std::vector<int> tri;
 
-		tri.push_back(nvertices[i]);
-		tri.push_back(nvertices[i + 1]);
-		tri.push_back(nvertices[i + 2]);
+		tri.push_back(nvertices[i*3]);
+		tri.push_back(nvertices[i*3 + 1]);
+		tri.push_back(nvertices[i*3 + 2]);
 
 		triangles.push_back(tri);
 
 	}
-	
+
+
 	HalfEdgeMesh mesh(triangles);
 
-	for (auto he : mesh.halfEdges) {
-		std::cout << "HalfEdge from v" << he->vertex->id;
-		if (he->twin)
-			std::cout << " twin->v" << he->twin->vertex->id;
-		else
-			std::cout << " twin->None";
-		std::cout << std::endl;
-	}
+	//two operations
 
-	//implment the loop subdivision here
-
-
+	findingBoundaryEdge(mesh);
+//	laplacianSmoothing(mesh);
+			
+	
 
 	glCreateVertexArrays(1, &vaoHandle);
-	glCreateBuffers(1, &vbo_cow_vertices); // VBO µŒ ∞≥ ª˝º∫
-	glCreateBuffers(1, &vbo_cow_normals); // VBO µŒ ∞≥ ª˝º∫
-	glCreateBuffers(1, &ibo_cow_elements); // VBO µŒ ∞≥ ª˝º∫
+	glCreateBuffers(1, &vbo_cow_vertices); // VBO Îëê Í∞ú ÏÉùÏÑ±
+	glCreateBuffers(1, &vbo_cow_normals); // VBO Îëê Í∞ú ÏÉùÏÑ±
+	glCreateBuffers(1, &ibo_cow_elements); // VBO Îëê Í∞ú ÏÉùÏÑ±
 
 
-	// ¡§¡° µ•¿Ã≈Õ VBO º≥¡§
+	// Ï†ïÏ†ê Îç∞Ïù¥ÌÑ∞ VBO ÏÑ§Ï†ï
 	glNamedBufferData(vbo_cow_vertices, sizeof(glm::vec3)*1732, vertices, GL_STATIC_DRAW);
 	glVertexArrayVertexBuffer(vaoHandle, 0, vbo_cow_vertices, 0, sizeof(glm::vec3));
 
@@ -136,12 +228,12 @@ void cow::setup()
     glVertexArrayVertexBuffer(vaoHandle, 1, vbo_cow_normals, 0, sizeof(glm::vec3));
 
 
-	// ¿Œµ¶Ω∫ µ•¿Ã≈Õ IBO º≥¡§
+	// Ïù∏Îç±Ïä§ Îç∞Ïù¥ÌÑ∞ IBO ÏÑ§Ï†ï
 	glNamedBufferData(ibo_cow_elements, sizeof(nvertices), nvertices, GL_STATIC_DRAW);
 	glVertexArrayElementBuffer(vaoHandle, ibo_cow_elements);
 
 
-	// ¿ßƒ° º”º∫ º≥¡§
+	// ÏúÑÏπò ÏÜçÏÑ± ÏÑ§Ï†ï
 	glVertexArrayAttribFormat(vaoHandle, 0, 3, GL_FLOAT, GL_FALSE, 0);
 	glVertexArrayAttribBinding(vaoHandle, 0, 0);
 	glEnableVertexArrayAttrib(vaoHandle, 0);

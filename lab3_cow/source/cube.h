@@ -4,183 +4,12 @@
 #include "GL/gl3w.h"
 #include <glm/mat4x4.hpp>
 
+
 #include <vector>
+#include<cstddef>
 
 
-
-
-class HalfEdgeMesh {
-public:
-    std::vector<Vertex*> vertices;
-    std::vector<Face*> faces;
-    std::vector<HalfEdge*> halfEdges;
-
-    // --- Loop subdivision step ---
-    void loopSubdivision() {
-        // 1. Compute new edge vertices
-        std::unordered_map<std::pair<int, int>, Vertex*, pair_hash> edgeVertexMap;
-
-        for (auto he : halfEdges) {
-            if (he->idVisited) continue; // avoid duplicate
-            HalfEdge* twin = he->twin;
-            Vertex* v0 = he->vertex;
-            Vertex* v1 = he->next->vertex;
-
-            Vertex* v2 = he->next->next->vertex; // opposite in face
-            Vertex* v3 = twin ? twin->next->next->vertex : nullptr;
-
-            double nx = 0.375 * (v0->x + v1->x) + 0.125 * ((v2->x) + (v3 ? v3->x : 0));
-            double ny = 0.375 * (v0->y + v1->y) + 0.125 * ((v2->y) + (v3 ? v3->y : 0));
-            double nz = 0.375 * (v0->z + v1->z) + 0.125 * ((v2->z) + (v3 ? v3->z : 0));
-
-            Vertex* newV = new Vertex(vertices.size(), nx, ny, nz);
-            vertices.push_back(newV);
-
-            edgeVertexMap[{v0->id, v1->id}] = newV;
-            edgeVertexMap[{v1->id, v0->id}] = newV;
-
-            he->idVisited = true;
-            if (twin) twin->idVisited = true;
-        }
-
-        // 2. Update old vertices (valence-based weighting)
-        for (auto v : vertices) {
-            std::vector<Vertex*> neighbors;
-            HalfEdge* start = v->edge;
-            HalfEdge* he = start;
-            do {
-                neighbors.push_back(he->twin->vertex);
-                he = he->twin->next;
-            } while (he != start);
-
-            int n = neighbors.size();
-            double beta = (n == 3) ? 3.0 / 16.0 : 3.0 / (8.0 * n);
-
-            double nx = (1 - n * beta) * v->x;
-            double ny = (1 - n * beta) * v->y;
-            double nz = (1 - n * beta) * v->z;
-
-            for (auto nb : neighbors) {
-                nx += beta * nb->x;
-                ny += beta * nb->y;
-                nz += beta * nb->z;
-            }
-
-            v->x = nx;
-            v->y = ny;
-            v->z = nz;
-        }
-
-        // 3. Split faces into 4 smaller triangles using new edge vertices
-        // (Implementation detail: rebuild half-edge connectivity with new vertices)
-        // ...
-    }
-};
-
-// Hash for pair<int,int>
-struct pair_hash {
-    std::size_t operator()(const std::pair<int, int>& p) const {
-        return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
-    }
-};
-
-
-struct HalfEdge;
-struct Face;
-struct Vertex;
-
-struct Vertex {
-    int id;
-    HalfEdge* edge; // outgoing half-edge
-};
-
-struct Face {
-    int id;
-    HalfEdge* edge; // one of its half-edges
-};
-
-struct HalfEdge {
-    Vertex* vertex;   // start vertex
-    Face* face;       // face it belongs to
-    HalfEdge* next;   // next half-edge in the face
-    HalfEdge* twin;   // opposite half-edge
-};
-
-// Key for edge lookup
-struct EdgeKey {
-    int v1, v2;
-    EdgeKey(int a, int b) {
-        v1 = std::min(a, b);
-        v2 = std::max(a, b);
-    }
-    bool operator==(const EdgeKey& other) const {
-        return v1 == other.v1 && v2 == other.v2;
-    }
-};
-
-struct EdgeKeyHash {
-    std::size_t operator()(const EdgeKey& k) const {
-        return std::hash<int>()(k.v1) ^ (std::hash<int>()(k.v2) << 1);
-    }
-};
-
-class HalfEdgeMesh {
-public:
-    std::vector<Vertex*> vertices;
-    std::vector<Face*> faces;
-    std::vector<HalfEdge*> halfEdges;
-
-    HalfEdgeMesh(const std::vector<std::vector<int>>& triangles) {
-        // Create vertices
-        int maxVertex = 0;
-        for (auto& tri : triangles)
-            for (int v : tri)
-                if (v > maxVertex) maxVertex = v;
-        for (int i = 0; i <= maxVertex; i++) {
-            Vertex* v = new Vertex{ i, nullptr };
-            vertices.push_back(v);
-        }
-
-        std::unordered_map<EdgeKey, HalfEdge*, EdgeKeyHash> edgeMap;
-
-        // Create faces and half-edges
-        int f_id = 0;
-        for (auto& tri : triangles) {
-            Face* f = new Face{ f_id++, nullptr };
-            faces.push_back(f);
-
-            HalfEdge* hes[3];
-            for (int i = 0; i < 3; i++) {
-                hes[i] = new HalfEdge();
-                hes[i]->vertex = vertices[tri[i]];
-                hes[i]->face = f;
-                halfEdges.push_back(hes[i]);
-            }
-            // link next pointers
-            hes[0]->next = hes[1];
-            hes[1]->next = hes[2];
-            hes[2]->next = hes[0];
-            f->edge = hes[0];
-
-            // register edges for twin linking
-            for (int i = 0; i < 3; i++) {
-                int v_start = tri[i];
-                int v_end = tri[(i + 1) % 3];
-                EdgeKey key(v_start, v_end);
-                if (edgeMap.find(key) == edgeMap.end()) {
-                    edgeMap[key] = hes[i];
-                }
-                else {
-                    HalfEdge* twinCandidate = edgeMap[key];
-                    hes[i]->twin = twinCandidate;
-                    twinCandidate->twin = hes[i];
-                }
-                vertices[v_start]->edge = hes[i];
-            }
-        }
-    }
-};
-
+class HalfEdgeMesh;
 
 
 class cow
@@ -190,6 +19,9 @@ public:
 	void setup();
 	void draw();
 	void calculateNormal();
+	void laplacianSmoothing(HalfEdgeMesh& mesh);
+	void findingBoundaryEdge(HalfEdgeMesh& mesh);
+
 
 	GLuint vaoHandle;
 	GLuint vbo_cow_vertices, ibo_cow_elements;

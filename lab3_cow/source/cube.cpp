@@ -52,8 +52,8 @@ void cow::findingBoundaryEdge(HalfEdgeMesh& mesh)
 			int v_start = he->vertex->id;
 			int v_end = he->next->vertex->id;
 			//std::cout << "Edge from v" << v_start << " to v" << v_end << " is boundary." << std::endl;
-			normals[v_start] = glm::vec3(1.0f, 0.0f, 0.0f); // 예시로 빨간색으로 표시
-			normals[v_end] = glm::vec3(1.0f, 0.0f, 0.0f);   // 예시로 빨간색으로 표시
+			normals[v_start] = glm::vec3(0.0f, 0.0f, 0.0f); // 예시로 빨간색으로 표시
+			normals[v_end] = glm::vec3(0.0f, 0.0f, 0.0f);   // 예시로 빨간색으로 표시
 		}
 	}
 }
@@ -82,7 +82,6 @@ void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
 
 		do {
 			neighbors.push_back(he->next->vertex);
-
 			if (!he->twin) {
 				isBoundary = true;  // ✓ Mark as boundary
 
@@ -97,13 +96,11 @@ void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
 				}
 				break;
 			}
-
 			he = he->twin->next;
 		} while (he != start);
 
+
 		if (neighbors.empty()) {
-
-
 			newPositions[v->id] = vertices[v->id];
 			continue;
 		}
@@ -112,12 +109,9 @@ void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
 		glm::vec3 avgPos(0.0f);
 		for (auto nb : neighbors)
 		{
-
 			avgPos += vertices[nb->id];
-
 		}
 		avgPos /= static_cast<float>(neighbors.size());
-
 
 		float lambda = isBoundary ? 0.0f : 0.5f;
 		newPositions[v->id] = vertices[v->id] + lambda * (avgPos - vertices[v->id]);
@@ -208,9 +202,9 @@ void cow::setup()
 
 	//two operations
 
-	findingBoundaryEdge(mesh);
-//	laplacianSmoothing(mesh);
-			
+//	findingBoundaryEdge(mesh);
+	laplacianSmoothing(mesh);
+	laplacianSmoothing(mesh);
 	
 
 	glCreateVertexArrays(1, &vaoHandle);

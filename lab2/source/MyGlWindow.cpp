@@ -150,9 +150,11 @@ void MyGlWindow::setupBuffer()
 	//load shaders//
 	//shaderProgram->initFromFiles("shaders/simple.vert", "shaders/simple.frag");
 	
-	
+	std::string vertex_path = std::string(SHADER_DIR) + "/simple.vert";
+	std::string fragment_path = std::string(SHADER_DIR) + "/simple.frag";
+
 	try {
-		shaderProgram_new = std::unique_ptr<Program>(Program::GenerateFromFileVsFs("shaders/simple.vert", "shaders/simple.frag"));
+		shaderProgram_new = std::unique_ptr<Program>(Program::GenerateFromFileVsFs(vertex_path, fragment_path));
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "SHADER ERROR: " << e.what() << std::endl;
@@ -377,6 +379,15 @@ void MyGlWindow::setupBuffer()
 	glVertexArrayAttribBinding(vaoHandle, 1, 0);  //attribute index, binding indexÀ» ¿¬°á
 	glEnableVertexArrayAttrib(vaoHandle, 1); //enable attribute 1
 	
+
+	
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(0.3f, 0.0f, 0.0f)); // Move the model back along the Z-axis
+	shaderProgram_new->BindProgram();
+		shaderProgram_new->SetMatrix("Model", model);
+	shaderProgram_new->UnbindProgram();
+	
+	
 }
 
 void MyGlWindow::draw(void)
@@ -403,6 +414,7 @@ void MyGlWindow::draw(void)
 
 		
 	shaderProgram_new->BindProgram();
+	
 	glBindVertexArray(vaoHandle);
 	//if (m_cube) m_cube->draw();
 	glDrawArrays(GL_TRIANGLES, 0, 6);

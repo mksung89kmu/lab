@@ -1,10 +1,11 @@
-# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
+﻿# CMakeList.txt : CMake project for lab1, include source and define
+# project specific logic here.
 #
 cmake_minimum_required (VERSION 3.8)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 
 # Enable Hot Reload for MSVC compilers if supported.
@@ -16,13 +17,12 @@ endif()
 
 set(PROJECT_NAME lab)
 
+  
+#add_subdirectory("F:/vcpkg/installed/x64-windows/share")
+#
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(gl3w CONFIG REQUIRED)
-
-set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
-
-
 
 
 file(GLOB_RECURSE SOURCES
@@ -32,12 +32,6 @@ file(GLOB_RECURSE SOURCES
 include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/source")
 
 # Add source to this project's executable.
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm glfw unofficial::gl3w::gl3w)
-
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE SHADER_DIR="${SHADER_DIR}")
-
-
-

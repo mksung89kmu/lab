@@ -20,8 +20,7 @@ MyGlWindow::MyGlWindow(int w, int h)
 
 	m_width = w;
 	m_height = h;
-	m_cube = nullptr;
-
+	
 	glm::vec3 viewPoint(DEFAULT_VIEW_POINT[0], DEFAULT_VIEW_POINT[1], DEFAULT_VIEW_POINT[2]);
 	glm::vec3 viewCenter(DEFAULT_VIEW_CENTER[0], DEFAULT_VIEW_CENTER[1], DEFAULT_VIEW_CENTER[2]);
 	glm::vec3 upVector(DEFAULT_UP_VECTOR[0], DEFAULT_UP_VECTOR[1], DEFAULT_UP_VECTOR[2]);
@@ -105,7 +104,7 @@ void MyGlWindow::draw(void)
 	glm::mat4 view = lookAt(eye, look, up);
 	
 
-	glm::mat4 projection = perspective(45.0f, 1.0f*m_width / m_height, 0.1f, 500.0f);
+	glm::mat4 projection = glm::perspective(45.0f, 1.0f*m_width / m_height, 0.1f, 500.0f);
 
 	glm::mat4 mview = view * model;
 	glm::mat4 mvp = projection * view *  model;
@@ -126,10 +125,8 @@ void MyGlWindow::draw(void)
 	*/
 
 	program->BindProgram();
-	//	program->SetMatrix("model", model);
-	//	program->SetMatrix("view", view);	
-	//	program->SetMatrix("projection", projection);	
-		if (m_cube) m_cube->draw();
+		program->SetMatrix("mvp", mvp);
+		if (m_floor) m_floor->draw();
 	program->UnbindProgram();
 	
 }
@@ -142,11 +139,11 @@ MyGlWindow::~MyGlWindow()
 
 void MyGlWindow::initialize()
 {
-	m_cube = std::make_unique<colorCube>();
+	m_floor = std::make_unique<checkeredFloor>();
 
 	
 	try {
-		program = std::unique_ptr<Program>(Program::GenerateFromFileVsFs("shaders/simple.vert", "shaders/simple.frag"));
+		program = std::unique_ptr<Program>(Program::GenerateFromFileVsFs("shaders/floor.vert", "shaders/floor.frag"));
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "SHADER ERROR: " << e.what() << std::endl;			

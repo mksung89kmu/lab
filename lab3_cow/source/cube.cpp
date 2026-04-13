@@ -58,15 +58,11 @@ void cow::findingBoundaryEdge(HalfEdgeMesh& mesh)
 	}
 }
 
-
 void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
 {
-	//Laplacian Smoothing
+	// 1. 새로운 위치 저장용 버퍼 (동적 크기 할당)
+	std::vector<glm::vec3> newPositions(mesh._vertices.size());
 
-	// 새로운 위치를 저장할 버퍼
-	std::vector<glm::vec3> newPositions(1732);
-
-	// 각 vertex에 대해 인접 vertex 평균 계산
 	for (auto v : mesh._vertices) {
 
 		if (v->edge == nullptr) {
@@ -74,58 +70,63 @@ void cow::laplacianSmoothing(HalfEdgeMesh& mesh)
 			continue;
 		}
 
-		std::vector<Vertex*> neighbors;
+		std::vector<int> neighborIds;
 		HalfEdge* start = v->edge;
-		HalfEdge* he = start;
+		HalfEdge* curr = start;
+		bool isBoundary = false;
 
-		bool isBoundary = false;  // ✓ Detect boundary vertices
-
+		// 정점 v를 중심으로 시계방향 혹은 반시계방향 순회
 		do {
-			neighbors.push_back(he->next->vertex);
-			if (!he->twin) {
-				isBoundary = true;  // ✓ Mark as boundary
+			// HalfEdge가 '시작점'을 가리키므로, 인접점은 curr->next->vertex입니다.
+			if (curr->next != nullptr) {
+				neighborIds.push_back(curr->next->vertex->id);
+			}
 
-				// Collect remaining neighbors on boundary
-				HalfEdge* current = start;
-				while (current->next->next->twin) {
-					current = current->next->next->twin;
-					if (current == start) break;
-				}
-				if (current != start) {
-					neighbors.push_back(current->vertex);
-				}
+			// 다음 outgoing edge로 이동: twin->next
+			if (curr->twin != nullptr) {
+				curr = curr->twin->next;
+			}
+			else {
+				// twin이 없으면 경계면(Boundary)에 도달한 것임
+				isBoundary = true;
 				break;
 			}
-			he = he->twin->next;
-		} while (he != start);
+		} while (curr != start);
 
+		// 경계면 정점일 경우: 반대 방향으로도 끝까지 순회해야 모든 인접점을 찾음
+		if (isBoundary) {
+			// 다시 시작점에서 반대 방향으로 순환
+			// (prev가 없으므로 v로 들어오는 edge를 찾기 위해 Face를 한바퀴 돌아야 함)
+			HalfEdge* currBack = start;
 
-		if (neighbors.empty()) {
+			// v로 들어오는 edge(currBack->??? == v)를 찾기 위해 현재 Face 순회
+			// 이 로직은 복잡하므로, 보통 경계면 정점은 수축 방지를 위해 고정합니다.
+			// 여기서는 안전하게 neighbors가 수집된 만큼만 사용하거나 lambda를 0으로 둡니다.
+		}
+
+		// 2. 평균 계산
+		if (neighborIds.empty()) {
 			newPositions[v->id] = vertices[v->id];
 			continue;
 		}
 
-		// 평균 위치 계산
 		glm::vec3 avgPos(0.0f);
-		for (auto nb : neighbors)
-		{
-			avgPos += vertices[nb->id];
+		for (int id : neighborIds) {
+			avgPos += vertices[id];
 		}
-		avgPos /= static_cast<float>(neighbors.size());
+		avgPos /= static_cast<float>(neighborIds.size());
 
+		// 3. 가중치 적용 (경계면 정점은 위치를 유지시켜 매쉬 변형을 막음)
 		float lambda = isBoundary ? 0.0f : 0.5f;
 		newPositions[v->id] = vertices[v->id] + lambda * (avgPos - vertices[v->id]);
-
 	}
 
-	// 모든 vertex 위치 업데이트
-	for (auto v : mesh._vertices) {
-		//	std::cout << "Updating vertex " << v->id << " from " << glm::to_string(vertices[v->id]) 
-		//		<< " to " << glm::to_string(newPositions[v->id]) << std::endl;
-		vertices[v->id] = newPositions[v->id];
-
+	// 4. 데이터 업데이트
+	for (size_t i = 0; i < mesh._vertices.size(); ++i) {
+		vertices[i] = newPositions[i];
 	}
 }
+
 
 // Check which vertices have no edge
 
@@ -204,7 +205,7 @@ void cow::setup()
 
 //	findingBoundaryEdge(mesh);
 	laplacianSmoothing(mesh);
-	laplacianSmoothing(mesh);
+//	laplacianSmoothing(mesh);
 	
 
 	glCreateVertexArrays(1, &vaoHandle);

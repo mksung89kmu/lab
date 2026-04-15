@@ -15,19 +15,32 @@ uniform vec3 camPos;
 uniform float shiness;
 
 uniform sampler2D Tex1;
-uniform int isTextured;
-
 
 const vec3 lightPos = vec3(500,500,500);  //bunny is huge, so the light is far away
 const vec3 lightIntensity = vec3(1.0,1.0,1.0);
 
 
+subroutine vec4 LightingModel(vec2 coord);
+
+subroutine(LightingModel) vec4 textured(vec2 coord)
+{
+  vec4 texColor = vec4(1,1,1,1);
+  texColor = texture( Tex1, coord ); 
+  return texColor;
+}
+
+subroutine(LightingModel) vec4 noTextured(vec2 coord)
+{
+ vec4 texColor = vec4(1,1,1,1);
+  return texColor;
+}
+
+subroutine uniform LightingModel currentModel;
+
 void main() 
 {
-
-   vec4 texColor = vec4(1,1,1,1);
-   if (isTextured == 1)
-     texColor = texture( Tex1, coord );
+    
+   vec4 texColor = currentModel(coord);
 
    vec3 finalColor = vec3(0,0,0);
    vec3 ambient = lightIntensity * Ka;

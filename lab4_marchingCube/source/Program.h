@@ -73,8 +73,6 @@ class Logging
 
 		void BindProgram();
 		void UnbindProgram();
-		
-		void SetSubroutine(const std::string& name, GLenum shaderType, const std::string funcName);
 
 		GLuint GetUniformID(const std::string& name);
 		GLuint GetProgramID();

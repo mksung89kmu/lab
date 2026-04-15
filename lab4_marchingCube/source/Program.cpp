@@ -150,16 +150,6 @@ void Program::SetBool(GLuint id, bool value)
 	glUniform1i(id, value ? 1 : 0);
 }
 
-void Program::SetSubroutine(const std::string& name, GLenum shaderType, const std::string funcName)
-{
-	GLuint index = glGetSubroutineIndex(ProgramID, shaderType, funcName.c_str());
-
-	GLuint id = glGetSubroutineUniformLocation(ProgramID, shaderType, name.c_str());
-	if (id == UINT_MAX)
-		Logging::LogError("No subroutine uniform ID exists under the name '{0}'", name); // Invalid ID
-	glUniformSubroutinesuiv(shaderType, 1, &index);
-}
-
 void Program::SetBool(const std::string& name, bool value)
 {
 	ValidateSetUniform(name);

@@ -6,13 +6,16 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "ogl.h"
 static float DEFAULT_VIEW_POINT[3] = { 50, 50, 50 };
 static float DEFAULT_VIEW_CENTER[3] = { 0, 0, 0 };
 static float DEFAULT_UP_VECTOR[3] = { 0, 1, 0 };
 
 //fix it to use smart pointers
 //std::unique_ptr<ShaderProgram> shaderProgram = nullptr;
-std::unique_ptr<Program> program = nullptr;
+
+std::unique_ptr<Program> program = nullptr;//
+//std::unique_ptr<dw::gl::Shader> m_shader = nullptr;
 
 MyGlWindow::MyGlWindow(int w, int h)
 //==========================================================================
@@ -153,6 +156,7 @@ void MyGlWindow::initialize()
 		exit(1);
 	}
 	
+	
 
 	glm::vec3 Kd(0.9, 0.9, 0.9);
 	glm::vec3 Ka(0.3, 0.3, 0.3);
@@ -165,9 +169,9 @@ void MyGlWindow::initialize()
 		program->SetVector("Kd", Kd);
 
 		program->SetFloat("shiness", shiness);
-		program->SetInt("isTextured", 1);
 		program->SetTexture("Tex1", m_bunny->name);
 
+		program->SetSubroutine("currentModel", GL_FRAGMENT_SHADER, "textured"); // Set the diffuse shader subroutine to index 0
 	program->UnbindProgram();
 }
 

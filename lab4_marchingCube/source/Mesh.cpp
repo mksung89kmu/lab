@@ -1,0 +1,281 @@
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "Mesh.h"
+
+#include <iostream>
+#include <Table.h>
+#include <Cube.h>
+#include <queue>
+#include <set>
+#include <algorithm>
+
+#include <glm/gtx/string_cast.hpp>
+
+using namespace std;
+
+
+Mesh::Mesh()
+{
+
+}
+
+void Mesh::generateMesh(CubeGrid& cubeGrid, unsigned int minTriangleCount)
+{
+    dimX = cubeGrid.width * cubeGrid.cubeSize;
+    dimY = cubeGrid.height * cubeGrid.cubeSize;
+    dimZ = cubeGrid.depth * cubeGrid.cubeSize;
+
+    for(int i = 0; i < cubeGrid.width; i++){
+        for(int j = 0; j < cubeGrid.height; j++){
+            for(int k = 0; k < cubeGrid.depth; k++){
+                triangulateCube(cubeGrid.cubes[i][j][k]);
+            }
+        }
+    }
+
+    assignSharedTriangles();
+
+    if(minTriangleCount > 0){
+        ignoreSmallRegions(minTriangleCount);
+        // reassign sharing because the triangles vector may have changed
+        sharedTriangles.clear();
+        assignSharedTriangles();
+    }
+
+    calculateNormals();
+}
+
+void Mesh::clear()
+{
+    vertices.clear();
+    triangles.clear();
+    sharedTriangles.clear();
+}
+
+void Mesh::calculateNormals()
+{
+    // the normal of each vertex is calculated as the average of each normals
+    // of the triangles sharing this vertex
+
+    for(auto it = triangles.begin(); it != triangles.end(); ++it){
+        Triangle& triangle = *it;
+
+        glm::vec3& v1 = vertices[triangle.a].pos;
+        glm::vec3& v2 = vertices[triangle.b].pos;
+        glm::vec3& v3 = vertices[triangle.c].pos;
+
+        triangle.normal = glm::cross(v2 - v1, v3 - v1);
+        triangle.normal = glm::normalize(triangle.normal);
+    }
+
+    for(unsigned int i = 0; i < vertices.size(); i++){
+        Vertex& vertex = vertices[i];
+		vertex.normal = glm::vec3(0.0f);
+
+        for(auto it = sharedTriangles[i].begin(); it != sharedTriangles[i].end(); ++it){
+            vertex.normal += triangles[*it].normal;
+        }
+
+        vertex.normal = glm::normalize(vertex.normal);
+        
+    }
+}
+
+void Mesh::assignSharedTriangles()
+{
+    sharedTriangles.resize(vertices.size());
+
+    for(unsigned int i = 0; i < triangles.size(); i++){
+        sharedTriangles[triangles[i].a].push_back(i);
+        sharedTriangles[triangles[i].b].push_back(i);
+        sharedTriangles[triangles[i].c].push_back(i);
+    }
+}
+
+void Mesh::triangulateCube(Cube& cube)
+{
+    const int *triConfig = triTable[cube.configuration];
+
+    int a, b, c;
+
+    for(int i = 0; triConfig[i] != -1; i += 3){
+        a = cube.edgeNodes[triConfig[i]];
+        b = cube.edgeNodes[triConfig[i+1]];
+        c = cube.edgeNodes[triConfig[i+2]];
+        triangles.push_back(Triangle(a, b, c));
+    }
+}
+
+void Mesh::ignoreSmallRegions(unsigned int minTriangleCount)
+{
+    // Apply floodfill on each non already visited vertices to get a
+    // vector of triangles (referred as their index) to delete.
+    // This step completes the per node floodfill as it clears features
+    // not detected in the previous step.
+
+    bool *visited = new bool[vertices.size()];
+    for(unsigned int i = 0; i < vertices.size(); i++){
+        visited[i] = false;
+    }
+
+    // list of all triangles that should be deleted
+
+    vector<int> trianglesToDelete;
+
+    for(unsigned int i = 0; i < vertices.size(); i++){
+        if(!visited[i]){
+            visited[i] = true;
+
+            set<int> regionTriangles;
+
+            getRegionTriangles(i, visited, regionTriangles);
+
+            if(regionTriangles.size() < minTriangleCount){
+                for(auto tri = regionTriangles.begin(); tri != regionTriangles.end(); ++tri){
+                    trianglesToDelete.push_back(*tri);
+                }
+            }
+        }
+    }
+
+    delete[] visited;
+
+    // delete the triangles from the triangles vector
+
+    sort(trianglesToDelete.begin(), trianglesToDelete.end());
+
+	//write codes that deletes the triangles at the indices in trianglesToDelete from the triangles vector
+    
+	// since the triangles vector is not ordered, we can swap the triangle to delete with the last one and pop the last one 
+	// to avoid shifting all the elements after the deleted one and thus reduce the time complexity of this step
+    //  
+   // Iterate backwards safely
+    if (!trianglesToDelete.empty()) {
+        for (auto it = trianglesToDelete.rbegin(); it != trianglesToDelete.rend(); ++it) {
+            iter_swap(triangles.begin() + (*it), triangles.end() - 1);
+            triangles.pop_back();
+        }
+    }
+ //   for (int i= trianglesToDelete.size()-1; i>=0; i--) {
+
+		//delete the triangle at index trianglesToDelete[i] by swapping it with the last triangle and popping the last one
+        
+        // 
+         // for(auto tri = trianglesToDelete.end() - 1; tri != trianglesToDelete.begin() - 1; tri--){
+
+   //     iter_swap(triangles.begin() + (*tri), triangles.end() - 1);
+    //    triangles.pop_back();
+  //  }
+}
+
+void Mesh::getRegionTriangles(int startVertex, bool *visited, set<int>& regionTriangles)
+{
+    // floodfill algorithm visiting all vertices of a connected shape
+
+    queue<int> vertQ;
+
+    int vertex;
+    int va, vb, vc;
+
+    vertQ.push(startVertex);
+
+    while(!vertQ.empty()){
+
+        vertex = vertQ.front();
+        vertQ.pop();
+
+        for(auto tri = sharedTriangles[vertex].begin(); tri != sharedTriangles[vertex].end(); ++tri){
+            regionTriangles.insert(*tri);
+
+            va = triangles[*tri].a;
+            vb = triangles[*tri].b;
+            vc = triangles[*tri].c;
+
+            if(!visited[va]){
+                visited[va] = true;
+                vertQ.push(va);
+            }
+            if(!visited[vb]){
+                visited[vb] = true;
+                vertQ.push(vb);
+            }
+            if(!visited[vc]){
+                visited[vc] = true;
+                vertQ.push(vc);
+            }
+        }
+    }
+}
+
+float* Mesh::getVertexArray()
+{
+    // generate the array of vertex data (position and normal)
+    // to load in the VBO
+
+    float *vertexData = new float[vertices.size()*2*3];
+
+    int index = 0;
+
+    for (unsigned int i = 0; i < vertices.size(); i++) {
+        vertexData[index] = vertices[i].pos.x;
+        vertexData[index + 1] = vertices[i].pos.y;
+        vertexData[index + 2] = vertices[i].pos.z;
+
+		glm::vec3 normal = vertices[i].normal;
+		normal = glm::normalize(normal);
+
+      //  std::cout << glm::to_string(normal) << std::endl;
+
+        vertexData[index + 3] = normal.x;
+        vertexData[index + 4] = normal.y;
+        vertexData[index + 5] = normal.z;
+		index += 6;
+    }
+    /*
+    for(unsigned int i = 0; i < vertices.size(); i++){
+
+        index = i * 3;
+
+        vertexData[index] = vertices[i].pos.x;
+        vertexData[index+1] = vertices[i].pos.y;
+        vertexData[index+2] = vertices[i].pos.z;
+    }
+
+    for(unsigned int i = 0; i < vertices.size(); i++){
+
+        index = (vertices.size() + i) * 3;
+
+        vertexData[index] = vertices[i].normal.x;
+        vertexData[index+1] = vertices[i].normal.y;
+        vertexData[index+2] = vertices[i].normal.z;
+    }
+    */
+
+    return vertexData;
+}
+
+unsigned int* Mesh::getTriangleArray()
+{
+    // generate the indices array to load in the IBO
+    // to draw the corresponding triangles
+
+    unsigned int *trianglesData = new unsigned int[triangles.size()*3];
+
+    int index;
+
+    for(unsigned int i = 0; i < triangles.size(); i++){
+
+        index = i*3;
+
+        trianglesData[index] = triangles[i].a;
+        trianglesData[index+1] = triangles[i].b;
+        trianglesData[index+2] = triangles[i].c;
+    }
+
+    return trianglesData;
+}
+
+Mesh::~Mesh()
+{
+
+}

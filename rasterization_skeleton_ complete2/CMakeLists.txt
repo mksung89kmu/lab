@@ -24,6 +24,11 @@ include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/source")
 # Add source to this project's executable.
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE 
+  DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/${CURRENT}"
+)
+
+
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 
 # TODO: Add tests and install targets if needed.

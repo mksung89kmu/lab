@@ -1,6 +1,8 @@
-
 #define _USE_MATH_DEFINES 
 #define GLM_ENABLE_EXPERIMENTAL
+
+
+#define COW 1
 
 #include <iostream>
 #include <vector>
@@ -11,7 +13,9 @@
 #include <fstream>
 #include <chrono>
 
+//두 개 중에 골라야 함
 #include "cow.h"
+//#include "teapot.h"
 #include "ppm_io.h"
 
 
@@ -23,9 +27,7 @@ void convertNDCtoImage(const glm::vec4 vertexNDC, glm::vec4 vertexView, const ui
     vertexRaster.y = (1 - vertexNDC.y) / 2 * imageHeight;
     vertexRaster.z = -vertexView.z;
 
-
 }
-
 
 
 float min3(const float& a, const float& b, const float& c)
@@ -71,11 +73,19 @@ glm::mat4 perspective(float fovy, float aspect, float near, float far)
 const uint32_t imageWidth = 640;
 const uint32_t imageHeight = 480;
 
+ 
+//const unsigned int modelIndices[47112] =  //struct ModelVertex const modelVertices[6066] = {
+//struct ModelVertex const modelVertices[8334]    const unsigned int modelIndices[17412] = {
 
-const uint32_t ntris = 9468/3.0;
+#ifdef COW 
+    const uint32_t ntris = 17412 /3.0;
+#else
+    const uint32_t ntris = 47112/3.0;
+#endif
+
+
 const float nearClippingPlane = 1;
 const float farClippingPLane = 1000;
-
 
 
 int main(int argc, char** argv)
@@ -84,6 +94,11 @@ int main(int argc, char** argv)
    // glm::mat4 worldToCamera = glm::lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
 
     float t, b, l, r;
+
+    
+    std::string imagePath = std::string(DATA_DIR) + "/source/cow2.ppm";
+
+	PPM texture(imagePath);
 
     PPM ppmOut;
     ppmOut.setBinary(true);
@@ -100,9 +115,9 @@ int main(int argc, char** argv)
 
 
     for (uint32_t i = 0; i < imageWidth * imageHeight; ++i) {
-        frameBuffer[i].r = 0;
-        frameBuffer[i].g = 0;
-        frameBuffer[i].b = 0;
+        frameBuffer[i].r = 0.3;
+        frameBuffer[i].g = 0.3;
+        frameBuffer[i].b = 0.3;
     }
 
     float* depthBuffer = new float[imageWidth * imageHeight];
@@ -113,20 +128,44 @@ int main(int argc, char** argv)
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
+#ifdef COW
+    int n = 6066;
+#else
+    int n = 8334;
+#endif
+
 	std::vector<glm::vec3> vRasters;
-	vRasters.resize(1732);
+	vRasters.resize(n);
 
     std::vector<glm::vec3> ves;
-    ves.resize(1732);
+    ves.resize(n);
 
+    std::vector <glm::vec2>  textureCoords;
+	textureCoords.resize(n);
 
 	// Pre-compute all vertex positions in raster space
 
-    for (uint32_t i = 0; i < 1732; ++i) {
-        glm::vec3 v = vertices[i];
+    for (uint32_t i = 0; i < n; ++i) {
+
+#ifdef COW
+        glm::vec3 v = modelVertices[i].position;
+        glm::vec2 uv = modelVertices[i].uv;
+
+#else
+        glm::vec3 v = modelVertices[i].position;
+        glm::vec2 uv = modelVertices[i].uv;
+
+#endif
+             
+        
+
         glm::mat4 modelMatrix(1.0f);
 
-        glm::mat4 viewMatrix = lookAt(glm::vec3(20, 10, 20), glm::vec3(0, 5, 0), glm::vec3(0, 1, 0));
+#ifdef COW   
+        glm::mat4 viewMatrix = lookAt(glm::vec3(10, 10, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+#else
+        glm::mat4 viewMatrix = lookAt(glm::vec3(200, 200, 200), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+#endif
 
         glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
 
@@ -149,13 +188,13 @@ int main(int argc, char** argv)
 		//vc -> gl_Position
 
 
-
 		//perspective division (divide v0c.x, v0c.y, v0c.z by v0c.w   (same to v1c, v2c)  : NDC
         vc.x = vc.x / vc.w;
         vc.y = vc.y / vc.w;
         vc.z = vc.z / vc.w;
 
-       
+		//how can I transform the texture coordinates st to the raster space?  (Hint : you can use the same way as vertex positions)
+        textureCoords[i] = uv;
 
 		//convert NDC to raster space
         glm::vec3 vRaster;
@@ -170,10 +209,17 @@ int main(int argc, char** argv)
 
 		//get triangle vertex indices : This is the primitive assembly step
 
-		int index0 = nvertices[i * 3];
-		int index1 = nvertices[i * 3 + 1];
-		int index2 = nvertices[i * 3 + 2];
+#ifdef COW
+        int index0 = modelIndices[i * 3];
+        int index1 = modelIndices[i * 3 + 1];
+        int index2 = modelIndices[i * 3 + 2];
 
+#else
+        int index0 = modelIndices[i * 3];
+        int index1 = modelIndices[i * 3 + 1];
+        int index2 = modelIndices[i * 3 + 2];
+
+#endif
 
         glm::vec3 v0Raster, v1Raster, v2Raster;
         glm::vec3 v0e, v1e, v2e;
@@ -181,6 +227,8 @@ int main(int argc, char** argv)
 		v0Raster = vRasters[index0];
 		v1Raster = vRasters[index1];
 		v2Raster = vRasters[index2];
+
+
                
 		v0e = ves[index0];
 		v1e = ves[index1];
@@ -263,10 +311,24 @@ int main(int argc, char** argv)
                         n = glm::normalize(n);
                         n = (n + glm::vec3(1, 1, 1)) / 2.0f;
 
+						//following codes are for texture mapping
+						glm::vec2 uv = (textureCoords[index0] * v0Raster.z) * a0 + 
+                                       (textureCoords[index1] * v1Raster.z) * a1 + 
+                                       (textureCoords[index2] * v2Raster.z) * a2;
 
-                        frameBuffer[y * imageWidth + x].r = n.x * 255;
-                        frameBuffer[y * imageWidth + x].g = n.y * 255;
-                        frameBuffer[y * imageWidth + x].b = n.z * 255;
+						uv = uv / oneOverZ;
+                                               
+						//get a texel color from texture using the uv coordinate
+                        
+						//is it perspective correct interpolation? (Hint : you can use the same way as z interpolation)
+						glm::vec3 texelColor = glm::vec3(texture.getImageHandler()[(int)(uv.y * texture.getH()) * texture.getW() * 3 + (int)(uv.x * texture.getW()) * 3],   
+                                                         texture.getImageHandler()[(int)(uv.y * texture.getH()) * texture.getW() * 3 + (int)(uv.x * texture.getW()) * 3 + 1],
+                                                         texture.getImageHandler()[(int)(uv.y * texture.getH()) * texture.getW() * 3 + (int)(uv.x * texture.getW()) * 3 + 2]);
+
+
+                        frameBuffer[y * imageWidth + x].r = unsigned char(texelColor.r);
+                        frameBuffer[y * imageWidth + x].g = unsigned char(texelColor.g);
+                        frameBuffer[y * imageWidth + x].b = unsigned char(texelColor.b);
 
                     }
                 }
